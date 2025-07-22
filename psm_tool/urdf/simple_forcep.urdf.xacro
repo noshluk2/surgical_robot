@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<robot name="psm_tool" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- World Link: The static base of our environment -->
+  <link name="world"/>
+
+  <!-- =============================== MAIN LINK =============================== -->
+  <!-- This is the main shaft of the tool, fixed to the world -->
+  <link name="main_link"/>
+
+  <joint name="world_to_main_fixed" type="fixed">
+    <parent link="world"/>
+    <child link="main_link"/>
+    <!-- Place the base of the tool at the world origin -->
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- This is a "dummy" link for the main visual mesh, as it has a different origin -->
+  <link name="main_visual_link">
+    <visual>
+      <!-- Your coordinates: -90,0,0 degrees -->
+      <origin xyz="0 0 0" rpy="${-pi/2} 0 0"/>
+      <geometry>
+        <mesh filename="package://psm_tool/meshes/tool_main_insert.OBJ" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="main_to_visual_fixed" type="fixed">
+      <parent link="main_link"/>
+      <child link="main_visual_link"/>
+  </joint>
+
+  <!-- =============================== ROLL LINK =============================== -->
+  <link name="roll_link">
+    <visual>
+      <!-- Your coordinates: 90,0,90 degrees -->
+      <origin xyz="0 0 0" rpy="${pi/2} 0 ${pi/2}"/>
+      <geometry>
+        <mesh filename="package://psm_tool/meshes/tool_roll_link.OBJ" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="roll_joint" type="revolute">
+    <parent link="main_link"/>
+    <child link="roll_link"/>
+    <!-- Your absolute coordinate: 0.27,0,0 -->
+    <origin xyz="0.27 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/> <!-- Roll along the tool's main X-axis -->
+    <limit lower="-3.14" upper="3.14" effort="10" velocity="1"/>
+  </joint>
+
+  <!-- =============================== PITCH LINK =============================== -->
+  <link name="pitch_link">
+    <visual>
+      <!-- Your coordinates: 90,0,0 degrees -->
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+      <geometry>
+        <!-- NOTE: You provided tool_yaw_link.OBJ, I am assuming this is the pitch link -->
+        <mesh filename="package://psm_tool/meshes/tool_pitch_link.OBJ" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="pitch_joint" type="revolute">
+    <parent link="roll_link"/>
+    <child link="pitch_link"/>
+    <!-- Relative pos: 0.486 (abs) - 0.27 (parent abs) = 0.216 -->
+    <origin xyz="0.216 0 0" rpy="1.57 0 0"/>
+    <axis xyz="0 1 0"/> <!-- Pitch around the Y-axis -->
+    <limit lower="-1.0" upper="1.0" effort="10" velocity="1"/>
+  </joint>
+
+  <!-- =============================== GRIPPER LINKS =============================== -->
+  <!-- The right gripper is the master, controlled by the slider -->
+  <link name="right_gripper_link">
+    <visual>
+      <!-- Your coordinates: 0,180,-90 degrees -->
+      <origin xyz="0 0 0" rpy="0 ${pi} ${-pi/2}"/>
+      <geometry>
+        <mesh filename="package://psm_tool/meshes/gripper_right.OBJ" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="right_gripper_joint" type="revolute">
+    <parent link="pitch_link"/>
+    <child link="right_gripper_link"/>
+    <!-- Relative pos: 0.495 (abs) - 0.485 (parent abs) = 0.01 -->
+    <origin xyz="0.01 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/> <!-- Grippers pivot around the Z-axis -->
+    <limit lower="0.0" upper="0.6" effort="5" velocity="1"/>
+  </joint>
+
+  <!-- The left gripper mimics the right one to open symmetrically -->
+  <link name="left_gripper_link">
+    <visual>
+      <!-- Your coordinates: 0,180,-90 degrees -->
+      <origin xyz="0 0 0" rpy="0 ${pi} ${-pi/2}"/>
+      <geometry>
+        <mesh filename="package://psm_tool/meshes/gripper_left.OBJ" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="left_gripper_joint" type="revolute">
+    <parent link="pitch_link"/>
+    <child link="left_gripper_link"/>
+    <!-- Origin is same as the right gripper joint -->
+    <origin xyz="0.01 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/> <!-- Same axis -->
+    <limit lower="-0.6" upper="0.0" effort="5" velocity="1"/>
+    <!-- The mimic tag makes this joint move automatically based on the other -->
+    <mimic joint="right_gripper_joint" multiplier="-1" offset="0"/>
+  </joint>
+
+</robot>
